@@ -58,31 +58,6 @@ class ExceptionMiddleware(BaseHTTPMiddleware):
         return response  # type: ignore
 
 
-# class JwtAccessMiddleware(BaseHTTPMiddleware):
-#     """JWT Access Middleware"""
-
-#     async def dispatch(
-#         self, request: Request, call_next: RequestResponseEndpoint
-#     ) -> StreamingResponse:
-#         cred: HTTPAuthorizationCredentials | None = await oauth2_scheme(
-#             request
-#         )  # TODO your own or Fastapi One
-#         if cred:
-#             context["USER_ID"] = self.verify_token(cred.credentials)
-#         if inspect.iscoroutinefunction(call_next):
-#             response = await call_next(request)
-#         else:
-#             response = call_next(request)  # type: ignore
-#         return response  # type: ignore
-
-#     def verify_token(self, creds):
-#         # Verify JWT header
-#         try:
-#             jwt_decoded = jwt.decode(creds)
-#         except Exception:
-#             log.exception("Invalid JWT")
-#             raise_401()
-#         return jwt_decoded
 
 
 class LoggingMiddlewareReq(BaseHTTPMiddleware):
