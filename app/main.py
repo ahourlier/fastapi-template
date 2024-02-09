@@ -201,7 +201,6 @@ app = FastAPI(
     redoc_url=f"{settings.API_PREFIX}/redoc",
 )
 
-# app.add_middleware(JwtAccessMiddleware)
 
 # Set all CORS enabled origins
 if settings.BACKEND_CORS_ORIGINS:
