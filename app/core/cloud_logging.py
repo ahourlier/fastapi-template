@@ -44,7 +44,6 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             http_request["userAgent"] = request.headers.get("user-agent")
 
         http_request_context.set(http_request)
-
         try:
             return await call_next(request)
         except Exception as ex:
