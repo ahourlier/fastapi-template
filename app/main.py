@@ -1,9 +1,11 @@
 import inspect
 import json
 import time
+
 # from app.api.deps import raise_401
 # import jwt
 from typing import Any
+
 # from fastapi.security import HTTPAuthorizationCredentials, OAuth2PasswordBearer
 
 import uvicorn
@@ -23,7 +25,6 @@ from typing_extensions import AsyncIterator
 from app.api.router import api_router
 from app.core.cloud_logging import LoggingMiddleware, log, logger_struct
 from app.core.config import settings
-
 
 
 class ExceptionMiddleware(BaseHTTPMiddleware):
@@ -56,8 +57,6 @@ class ExceptionMiddleware(BaseHTTPMiddleware):
                 content={"detail": [{"msg": str(e), "loc": request.url.path, "type": "Unknown"}]},
             )
         return response  # type: ignore
-
-
 
 
 class LoggingMiddlewareReq(BaseHTTPMiddleware):
@@ -222,6 +221,3 @@ app.include_router(api_router, prefix=settings.API_PREFIX)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
-
-
