@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: int = logging.INFO
     LOG_NAME: str = "fastapi_template"
     PROJECT_NAME: str = "FastApi template"
+    LOCAL_EMAIL_ADMIN: str = "augustin.hourlier@devoteamgcloud.com"
 
     API_PREFIX: str = "/api"
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:5174"]
@@ -19,7 +20,7 @@ class Settings(BaseSettings):
     GITHUB_ACCESS_TOKEN: Optional[str] = None
     GCLOUD_PROJECT_ID: Optional[str] = "sandbox-ahourlier"
 
-    class Config:
+    class ConfigDict:
         env_file = ".env"
 
 

@@ -22,7 +22,7 @@ def convert_datetime_to_realworld(dt: datetime) -> str:
 
 
 class AppBase(SQLModel):
-    class Config:
+    class ConfigDict:
         alias_generator = to_camel
         populate_by_name = True
         json_encoders = {datetime: convert_datetime_to_realworld}
@@ -35,13 +35,14 @@ class ReadBase(SQLModel):
 
 
 class TableBase(SQLModel):
-    id: Optional[int] = Field(primary_key=True, nullable=False)
+    id: Optional[int] = Field(default=None, primary_key=True, nullable=False)
 
     created_at: Optional[datetime] = Field(
         sa_type=TIMESTAMP(timezone=True),
         sa_column_kwargs={
             "server_default": text("CURRENT_TIMESTAMP"),
         },
+        default=datetime.now(),
         nullable=False,
     )
 
@@ -51,6 +52,7 @@ class TableBase(SQLModel):
             "server_default": text("CURRENT_TIMESTAMP"),
             "onupdate": text("CURRENT_TIMESTAMP"),
         },
+        default=datetime.now(),
         nullable=False,
     )
 

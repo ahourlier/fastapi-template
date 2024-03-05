@@ -15,7 +15,7 @@ class DateTimeModelMixin(BaseModel, Generic[T]):
     created_at: T
     updated_at: T
 
-    class Config:
+    class ConfigDict:
         alias_generator = to_camel
         populate_by_name = True
 
@@ -24,6 +24,6 @@ class Page(BaseModel, Generic[T]):
     items: List[T]
     total: int
 
-    class Config:
+    class ConfigDict:
         alias_generator = to_camel
         populate_by_name = True

@@ -108,8 +108,9 @@ class LoggingMiddlewareReq(BaseHTTPMiddleware):
                 pass
             response = await call_next(request)
             response_body = await self.resolve_response(response)
-            self.log_request(request, request_body, context)
-            self.log_response(request, response_body)
+            if settings.ENV in ["local", "test"]:
+                self.log_request(request, request_body, context)
+                self.log_response(request, response_body)
             logger_struct.log_struct(
                 {
                     "user": context.get("USER_ID"),
@@ -122,7 +123,6 @@ class LoggingMiddlewareReq(BaseHTTPMiddleware):
                     "content": response_body.body.decode("utf-8"),
                 }
             )
-
         except Exception as e:
             log.error("Error in logging middleware")
             log.error(e)
