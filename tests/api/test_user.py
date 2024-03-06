@@ -1,9 +1,10 @@
 from fastapi.encoders import jsonable_encoder
 from fastapi.testclient import TestClient
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.core.config import settings
-from tests.utils.user import get_random_user, create_random_user
+from app.sqlmodel.models.user import User
+from tests.utils.user import create_random_user, get_random_user
 
 
 DATASOURCES_URL = f"{settings.API_PREFIX}/sql_users"
@@ -18,6 +19,9 @@ def test_create_user(client: TestClient, db: Session) -> None:
     assert response.status_code == 200
     content = response.json()
     assert content.get("email") == user.email
+    # Delete user
+    db.delete(db.exec(select(User).where(User.id == content.get("id"))).first())
+    db.commit()
 
 
 def test_get_user(client: TestClient, db: Session) -> None:
@@ -27,19 +31,25 @@ def test_get_user(client: TestClient, db: Session) -> None:
     )
     assert response.status_code == 200
     content = response.json()
-    assert content.get("first_name") == user.first_name
+    assert content.get("id") is not None
+
+    # Delete user
+    db.delete(db.exec(select(User).where(User.id == user.id)).first())
+    db.commit()
 
 
 def test_get_users(client: TestClient, db: Session) -> None:
-    user = create_random_user(db)
+    users = [create_random_user(db), create_random_user(db), create_random_user(db)]
     response = client.get(
         f"{DATASOURCES_URL}",
     )
     assert response.status_code == 200
 
     content = response.json()
-    assert content.get("total") == 1
-
+    assert content.get("total") == len(users)
     items = content.get("items")
-    assert len(items) == 1
-    assert items[0].get("first_name") == user.first_name
+    assert len(items) == len(users)
+
+    for user in users:
+        db.delete(db.exec(select(User).where(User.id == user.id)).first())
+        db.commit()

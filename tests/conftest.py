@@ -3,7 +3,6 @@ from typing import Generator, Optional
 import pytest
 from faker import Faker
 from fastapi.testclient import TestClient
-from pytest_mock import MockerFixture
 from sqlalchemy import event
 from sqlmodel import Session
 
@@ -31,18 +30,22 @@ def session() -> Generator:
 
 
 @pytest.fixture(scope="function")
-def db(session: Session, mocker: MockerFixture) -> Generator:
+def db(session: Session) -> Generator:
     # we use nested session (savepoint) in order to rollback all changes between each tests
     session.begin_nested()
 
     @event.listens_for(session, "after_transaction_end")
-    def restart_savepoint(sess, transaction) -> None:  # type: ignore
+    def restart_savepoint(sess: Session, transaction) -> None:  # type: ignore
         if transaction.nested and not transaction._parent.nested:
             sess.begin_nested()
 
     yield session
-    event.remove(session, "after_transaction_end", restart_savepoint)
-    session.close()
+
+    try:
+        session.rollback()
+        event.remove(session, "after_transaction_end", restart_savepoint)
+    finally:
+        session.close()
 
 
 @pytest.fixture(scope="session")

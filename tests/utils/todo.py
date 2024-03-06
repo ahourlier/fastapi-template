@@ -19,7 +19,7 @@ def get_random_todo() -> TodoCreate:
     return todo_in
 
 
-def create_random_todo(db: Session) -> TodoRead:
+def create_random_todo(db: Session, commit=False) -> TodoRead:
     report_in = get_random_todo()
-    report = crud.todos.create(db=db, obj_in=report_in)
+    report = crud.todos.create(db=db, obj_in=report_in, commit=commit)
     return TodoRead.model_validate(report)
