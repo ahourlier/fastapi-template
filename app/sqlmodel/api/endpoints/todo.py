@@ -16,6 +16,30 @@ router = APIRouter()
 
 
 @router.get(
+    "/test",
+)
+def test():
+    from time import sleep
+
+    print("Started")
+    sleep(1)
+    print("Finished")
+    return {"Hello": "World"}
+
+
+@router.get(
+    "/test_async",
+)
+async def test_async():
+    import asyncio
+
+    print("Started")
+    await asyncio.sleep(1)
+    print("Finished")
+    return {"Hello": "World"}
+
+
+@router.get(
     "",
     response_model=Page[TodoRead],
 )

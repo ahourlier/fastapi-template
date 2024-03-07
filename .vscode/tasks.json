@@ -27,6 +27,7 @@
           "GOOGLE_APPLICATION_CREDENTIALS": "/gcp/application_default_credentials.json",
           "GCLOUD_PROJECT": "sandbox-ahourlier"
         },
+        "network": "augustin_default",
         "volumes": [
           {
             "localPath": "/home/augustin/.config/gcloud",
