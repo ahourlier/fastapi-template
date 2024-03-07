@@ -1,7 +1,7 @@
 import logging
 from typing import List, Optional
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -20,8 +20,7 @@ class Settings(BaseSettings):
     GITHUB_ACCESS_TOKEN: Optional[str] = None
     GCLOUD_PROJECT_ID: Optional[str] = "sandbox-ahourlier"
 
-    class ConfigDict:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env")
 
 
 settings = Settings()

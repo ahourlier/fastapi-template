@@ -25,8 +25,8 @@ down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
-NB_TODO = 50
-NB_USERS = 20
+NB_TODO = 500
+NB_USERS = 120
 
 
 def upgrade():
