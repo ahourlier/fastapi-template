@@ -1,6 +1,5 @@
 import argparse
 import subprocess
-import threading
 
 DEFAULT_NUM_REQUESTS = 100
 DEFAULT_CONCUR_REQUESTS = 10
@@ -44,32 +43,14 @@ def request_url(url, num_requests, concur_requests, args):
                     or "Time taken for tests:" in line
                 ):
                     text += f"    {line}\n"
-            text += "\n- - - - - - - - - - - - - -"
+            text += "\n- - - - - - - - - - - - - -\n"
     print(text)
-
-
-def run_tests(urls, num_requests, concur_requests, args):
-    threads = []
-    for url in urls:
-        thread = threading.Thread(
-            target=request_url, args=(url, num_requests, concur_requests, args)
-        )
-        thread.start()
-        threads.append(thread)
-
-    # Wait for all threads to complete
-    for thread in threads:
-        thread.join()
 
 
 args = get_args()
 num_requests = args.n if args.n else DEFAULT_NUM_REQUESTS
 concur_requests = args.c if args.c else DEFAULT_CONCUR_REQUESTS
 
-urls = ["http://127.0.0.1:8000/api/threads/sync"]
-print(f"{num_requests} REQUESTS - {concur_requests} CONCURRENCY\n")
-print("Following URL'S will be tested concurrently:")
+urls = ["http://127.0.0.1:8000/api/threads/sync", "http://127.0.0.1:8000/api/threads/async"]
 for url in urls:
-    print(f"{url}")
-
-run_tests(urls, num_requests, concur_requests, args)
+    request_url(url, num_requests, concur_requests, args)
