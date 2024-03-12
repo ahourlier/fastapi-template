@@ -168,7 +168,7 @@ class LoggingMiddlewareReq(BaseHTTPMiddleware):
             print("\n   Content-Length:")
             print(f"      {len(str(content))}")
             print("\n   Content:")
-            if "total" in content:
+            if content and "total" in content:
                 print(f"      {content['total']} items")
             elif isinstance(content, list):
                 print(f"      {len(content)} items")
