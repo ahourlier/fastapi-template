@@ -1,58 +1,76 @@
-from typing import Generator, Optional
+from contextlib import ExitStack
 
 import pytest
-from faker import Faker
+from alembic.config import Config
+from alembic.migration import MigrationContext
+from alembic.operations import Operations
+from alembic.script import ScriptDirectory
+from app.sqlmodel.db import Base, get_db_session, session_manager
+from app.main import app as actual_app
+from asyncpg import Connection
 from fastapi.testclient import TestClient
-from sqlalchemy import event
-from sqlmodel import Session
-
-from app.sqlmodel import SQLModel
-from app.sqlmodel import engine
-
-fake = Faker()
-test_session = None
 
 
-def get_test_session() -> Optional[Session]:
-    return test_session
+@pytest.fixture(autouse=True)
+def app():
+    with ExitStack():
+        yield actual_app
 
 
-@pytest.fixture(scope="session")
-def session() -> Generator:
-    SQLModel.metadata.create_all(engine)
+@pytest.fixture
+def client(app):
+    with TestClient(app) as c:
+        yield c
 
-    with Session(engine, autoflush=False, autocommit=False) as s:
-        global test_session
-        test_session = s
-        yield s
 
-    SQLModel.metadata.drop_all(engine)
+def run_migrations(connection: Connection):
+    config = Config("alembic.ini")
+    script = ScriptDirectory.from_config(config)
+
+    def upgrade(rev, context):
+        return script._upgrade_revs("head", rev)
+
+    context = MigrationContext.configure(
+        connection, opts={"target_metadata": Base.metadata, "fn": upgrade}
+    )
+
+    with context.begin_transaction():
+        with Operations.context(context):
+            context.run_migrations()
+
+
+@pytest.fixture(scope="session", autouse=True)
+async def setup_database():
+    # Run alembic migrations on test DB
+    async with session_manager.connect() as connection:
+        await connection.run_sync(run_migrations)
+
+    yield
+
+    # Teardown
+
+    await session_manager.close()
+
+
+# Each test function is a clean slate
+@pytest.fixture(scope="function", autouse=True)
+async def transactional_session():
+    async with session_manager.session() as session:
+        try:
+            await session.begin()
+            yield session
+        finally:
+            await session.rollback()  # Rolls back the outer transaction
 
 
 @pytest.fixture(scope="function")
-def db(session: Session) -> Generator:
-    # we use nested session (savepoint) in order to rollback all changes between each tests
-    session.begin_nested()
-
-    @event.listens_for(session, "after_transaction_end")
-    def restart_savepoint(sess: Session, transaction) -> None:  # type: ignore
-        if transaction.nested and not transaction._parent.nested:
-            sess.begin_nested()
-
-    yield session
-
-    try:
-        session.rollback()
-        event.remove(session, "after_transaction_end", restart_savepoint)
-    finally:
-        session.close()
+async def db(transactional_session):
+    yield transactional_session
 
 
-@pytest.fixture(scope="session")
-def client() -> Generator:
-    from app.sqlmodel.api.deps import get_session
-    from app.main import app
+@pytest.fixture(scope="function", autouse=True)
+async def session_override(app, db):
+    async def get_db_session_override():
+        yield db[0]
 
-    app.dependency_overrides[get_session] = get_test_session
-    with TestClient(app) as c:
-        yield c
+    app.dependency_overrides[get_db_session] = get_db_session_override

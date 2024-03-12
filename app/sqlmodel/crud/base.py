@@ -78,8 +78,11 @@ class CRUDBase(Generic[ModelType, CreateModelType, UpdateModelType]):
             await db.refresh(db_obj)
         return db_obj
 
-    def remove(self, db: AsyncSession, *, id: int, commit: bool = True) -> Optional[ModelType]:
-        obj = db.exec(select(self.model).where(self.model.id == id)).first()
+    async def remove(
+        self, db: AsyncSession, *, id: int, commit: bool = True
+    ) -> Optional[ModelType]:
+        statement = select(self.model).where(self.model.id == id)
+        obj = await db.scalars(statement).first()
         db.delete(obj)
         if commit:
             db.commit()

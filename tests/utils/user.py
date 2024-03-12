@@ -1,7 +1,7 @@
 import random
 from faker import Faker
 from app.sqlmodel.models.user import UserCreate, UserRead
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.sqlmodel import crud
 
 fake = Faker()
@@ -18,9 +18,9 @@ def get_random_user() -> UserCreate:
     return user_in
 
 
-def create_random_user(db: Session) -> UserRead:
+async def create_random_user(db: AsyncSession) -> UserRead:
     user_in = get_random_user()
-    user = crud.users.create(db=db, obj_in=user_in)
+    user = await crud.users.create(db=db, obj_in=user_in)
     return UserRead.model_validate(user)
 
 
@@ -40,8 +40,8 @@ def get_user(
     return user_in
 
 
-def create_user(
-    db: Session,
+async def create_user(
+    db: AsyncSession,
     first_name: str,
     last_name: str,
     email: str,
@@ -49,5 +49,5 @@ def create_user(
     login_times: int | None,
 ) -> UserRead:
     user_in = get_user(first_name, last_name, email, is_admin, login_times)
-    user = crud.users.create(db=db, obj_in=user_in)
+    user = await crud.users.create(db=db, obj_in=user_in)
     return UserRead.model_validate(user)

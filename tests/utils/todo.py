@@ -1,7 +1,7 @@
 import random
 
 from faker import Faker
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.sqlmodel import crud
 from app.sqlmodel.models.todo import TodoCreate, TodoPriority, TodoRead
@@ -19,7 +19,7 @@ def get_random_todo() -> TodoCreate:
     return todo_in
 
 
-def create_random_todo(db: Session, commit=False) -> TodoRead:
+async def create_random_todo(db: AsyncSession, commit=False) -> TodoRead:
     report_in = get_random_todo()
-    report = crud.todos.create(db=db, obj_in=report_in, commit=commit)
+    report = await crud.todos.create(db=db, obj_in=report_in, commit=commit)
     return TodoRead.model_validate(report)

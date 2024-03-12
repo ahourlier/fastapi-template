@@ -1,8 +1,6 @@
-import json
-
 from fastapi.encoders import jsonable_encoder
 from fastapi.testclient import TestClient
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from tests.utils.todo import create_random_todo, get_random_todo
@@ -10,7 +8,7 @@ from tests.utils.todo import create_random_todo, get_random_todo
 DATASOURCES_URL = f"{settings.API_PREFIX}/sql_todos"
 
 
-def test_create_todo(client: TestClient, db: Session) -> None:
+async def test_create_todo(client: TestClient, db: AsyncSession) -> None:
     todo = get_random_todo()
     response = client.post(
         DATASOURCES_URL,
@@ -21,7 +19,7 @@ def test_create_todo(client: TestClient, db: Session) -> None:
     assert content.get("id") is not None
 
 
-def test_get_todo(client: TestClient, db: Session) -> None:
+async def test_get_todo(client: TestClient, db: AsyncSession) -> None:
     response = client.get(
         f"{DATASOURCES_URL}/{1}",
     )
@@ -30,7 +28,7 @@ def test_get_todo(client: TestClient, db: Session) -> None:
     assert content.get("id") == 1
 
 
-def test_get_todos(client: TestClient, db: Session) -> None:
+async def test_get_todos(client: TestClient, db: AsyncSession) -> None:
     response = client.get(
         f"{DATASOURCES_URL}",
     )
@@ -43,8 +41,8 @@ def test_get_todos(client: TestClient, db: Session) -> None:
     assert items[0].get("id") == 1
 
 
-def test_update_todo(client: TestClient, db: Session) -> None:
-    todo = create_random_todo(db, commit=True)
+async def test_update_todo(client: TestClient, db: AsyncSession) -> None:
+    todo = await create_random_todo(db, commit=True)
     todo.title = "updated"
     response = client.put(
         f"{DATASOURCES_URL}/{todo.id}",
@@ -55,8 +53,8 @@ def test_update_todo(client: TestClient, db: Session) -> None:
     assert content.get("title") == todo.title
 
 
-def test_delete_todo(client: TestClient, db: Session) -> None:
-    todo = create_random_todo(db, commit=True)
+async def test_delete_todo(client: TestClient, db: AsyncSession) -> None:
+    todo = await create_random_todo(db, commit=True)
     response = client.delete(
         f"{DATASOURCES_URL}/{todo.id}",
     )

@@ -22,7 +22,9 @@ class TodoBase(AppBase):
 
 
 class Todo(TodoBase, TableBase, table=True):
-    users: List["User"] = Relationship(back_populates="todos", link_model=UserTodo)
+    users: List["User"] = Relationship(
+        back_populates="todos", link_model=UserTodo, sa_relationship_kwargs={"lazy": "selectin"}
+    )
 
 
 class TodoRead(ReadBase, TodoBase):

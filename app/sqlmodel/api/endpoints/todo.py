@@ -1,7 +1,7 @@
 from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlmodel import Session, select
+from sqlmodel import select
 
 from app.sqlmodel import crud
 from app.sqlmodel.api.deps import session_dep, parse_query_filter_params
@@ -83,18 +83,24 @@ async def create_todo(
     """
     try:
         todo = await crud.todos.create(db=db, obj_in=todo_in, commit=False)
-        if todo_in.users_id:
-            users_list = db.exec(select(User).where(User.id.in_(todo_in.users_id))).all()
-            todo.users = [u for u in users_list]
     except Exception as e:
-        db.rollback()
+        await db.rollback()
         log.exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create todo"
         )
     else:
-        db.commit()
-        db.refresh(todo)
+        await db.commit()
+        await db.refresh(todo)
+        # Works but move it later
+        # (Can't put in try because of this https://stackoverflow.com/questions/74252768/missinggreenlet-greenlet-spawn-has-not-been-called)
+        if todo_in.users_id:
+            statement = select(User).where(User.id.in_(todo_in.users_id))
+            users_list = (await db.scalars(statement)).all()
+            todo.users = [u for u in users_list]
+            await db.commit()
+            await db.refresh(todo)
+
     return todo
 
 
