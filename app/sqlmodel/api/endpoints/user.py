@@ -3,7 +3,7 @@ from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 
-from app.sqlmodel import crud
+from app.sqlmodel.crud.user import users as crud_user
 from app.sqlmodel.api.deps import session_dep, parse_query_filter_params
 from app.core.cloud_logging import log
 from app.core.config import settings
@@ -30,7 +30,7 @@ async def read_users(
     """
     Retrieve user.
     """
-    users = await crud.users.get_multi(
+    users = await crud_user.get_multi(
         db, skip=skip, limit=limit, sort=sort, is_desc=is_desc, filters=filters
     )
     return users
@@ -49,7 +49,7 @@ async def create_user(
     Create new user.
     """
     try:
-        user = await crud.users.create(db=db, obj_in=user_in)
+        user = await crud_user.create(db=db, obj_in=user_in)
     except Exception as e:
         log.exception(e)
         raise HTTPException(
@@ -70,7 +70,7 @@ async def read_user(
     """
     Get user by ID
     """
-    user = await crud.users.get(db=db, id=_id)
+    user = await crud_user.get(db=db, id=_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return user

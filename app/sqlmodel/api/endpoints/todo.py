@@ -1,16 +1,14 @@
 from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlmodel import select
 
-from app.sqlmodel import crud
+from app.sqlmodel.crud.todo import todos as crud_todo
 from app.sqlmodel.api.deps import session_dep, parse_query_filter_params
 from app.core.cloud_logging import log
 from app.core.config import settings
 from app.models.base import Page
 from app.sqlmodel.models.base import QueryFilter
 from app.sqlmodel.models.todo import Todo, TodoCreate, TodoRead, TodoReadUsers, TodoUpdate
-from app.sqlmodel.models.user import User
 
 router = APIRouter()
 
@@ -29,10 +27,10 @@ async def read_todos(
     is_desc: bool = False,
 ) -> Page[Todo]:
     """
-    Retrieve todos.
+    Retrieve crud_todo.
     """
     try:
-        todos = await crud.todos.get_multi(
+        todos = await crud_todo.get_multi(
             db, skip=skip, limit=limit, sort=sort, is_desc=is_desc, filters=filters
         )
         return todos
@@ -65,7 +63,7 @@ async def read_todos_users(
     """
     Retrieve todos sorted by users.
     """
-    todos = await crud.todos.get_multi(db, skip=skip, limit=limit, sort=sort, is_desc=is_desc)
+    todos = await crud_todo.get_multi(db, skip=skip, limit=limit, sort=sort, is_desc=is_desc)
     return todos.items
 
 
@@ -82,24 +80,16 @@ async def create_todo(
     Create a todo.
     """
     try:
-        todo = await crud.todos.create(db=db, obj_in=todo_in, commit=False)
+        todo = await crud_todo.create(db=db, obj_in=todo_in)
+        await crud_todo.update_users(db=db, todo_in=todo_in, todo=todo)
+        await db.commit()
+        await db.refresh(todo)
     except Exception as e:
         await db.rollback()
         log.exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not create todo"
         )
-    else:
-        await db.commit()
-        await db.refresh(todo)
-        # Works but move it later
-        # (Can't put in try because of this https://stackoverflow.com/questions/74252768/missinggreenlet-greenlet-spawn-has-not-been-called)
-        if todo_in.users_id:
-            statement = select(User).where(User.id.in_(todo_in.users_id))
-            users_list = (await db.scalars(statement)).all()
-            todo.users = [u for u in users_list]
-            await db.commit()
-            await db.refresh(todo)
 
     return todo
 
@@ -117,12 +107,14 @@ async def update_todo(
     """
     Update a todo.
     """
-    todo = await crud.todos.get(db=db, id=_id)
+    todo = await crud_todo.get(db=db, id=_id)
     if not todo:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Todo not found")
-
     try:
-        todo = await crud.todos.update(db=db, db_obj=todo, obj_in=todo_in)
+        todo = await crud_todo.update(db=db, db_obj=todo, obj_in=todo_in)
+        await crud_todo.update_users(db=db, todo_in=todo_in, todo=todo)
+        await db.commit()
+        await db.refresh(todo)
     except Exception as e:
         log.exception(e)
         raise HTTPException(
@@ -143,7 +135,7 @@ async def read_todo(
     """
     Get todo by ID.
     """
-    todo = await crud.todos.get(db=db, id=_id)
+    todo = await crud_todo.get(db=db, id=_id)
     if not todo:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Todo not found")
     return todo
@@ -161,7 +153,7 @@ async def read_todo_users(
     """
     Get user linked to a todo by todo ID.
     """
-    todo = await crud.todos.get(db=db, id=_id)
+    todo = await crud_todo.get(db=db, id=_id)
     if not todo:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Todo not found")
     return todo
@@ -179,12 +171,13 @@ async def delete_todo(
     """
     Delete a todo.
     """
-    todo = await crud.todos.get(db=db, id=_id)
+    todo = await crud_todo.get(db=db, id=_id)
     if not todo:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Todo not found")
 
     try:
-        todo = await crud.todos.remove(db=db, id=_id)
+        todo = await crud_todo.remove(db=db, db_obj=todo)
+
     except Exception as e:
         log.exception(e)
         raise HTTPException(

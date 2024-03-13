@@ -70,6 +70,9 @@ class CRUDBase(Generic[ModelType, CreateModelType, UpdateModelType]):
         for field in update_data:
             snake_field = to_snake(field)
             if snake_field in update_data:
+                # Lists must be managed manually
+                if isinstance(update_data[snake_field], list):
+                    continue
                 setattr(db_obj, snake_field, update_data[snake_field])
 
         db.add(db_obj)
@@ -78,15 +81,11 @@ class CRUDBase(Generic[ModelType, CreateModelType, UpdateModelType]):
             await db.refresh(db_obj)
         return db_obj
 
-    async def remove(
-        self, db: AsyncSession, *, id: int, commit: bool = True
-    ) -> Optional[ModelType]:
-        statement = select(self.model).where(self.model.id == id)
-        obj = await db.scalars(statement).first()
-        db.delete(obj)
+    async def remove(self, db: AsyncSession, *, db_obj: ModelType, commit: bool = True) -> str:
+        await db.delete(db_obj)
         if commit:
-            db.commit()
-        return obj
+            await db.commit()
+        return db_obj
 
     async def order_and_paginate_results(
         self,

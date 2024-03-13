@@ -41,4 +41,4 @@ class TodoCreate(TodoBase):
 
 
 class TodoUpdate(TodoBase):
-    users: List["User"] = []
+    users_id: Optional[List[int]]
