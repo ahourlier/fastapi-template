@@ -1,3 +1,4 @@
+import pytest
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.testclient import TestClient
@@ -9,6 +10,7 @@ from app.core.config import settings
 DATASOURCES_URL = f"{settings.API_PREFIX}/sql_users"
 
 
+@pytest.mark.anyio
 async def test_query_filter_users(client: TestClient, db: AsyncSession) -> None:
     user0 = await create_user(
         db, "Jean", "jean.dupont@gmail.com", "jean.dupont@gmail.com", True, 135
@@ -107,9 +109,9 @@ async def test_query_filter_users(client: TestClient, db: AsyncSession) -> None:
 
     # Delete used users
     users = [
-        await db.scalars(select(User).where(user0.id == id)).first(),
-        await db.scalars(select(User).where(user1.id == id)).first(),
-        await db.scalars(select(User).where(user2.id == id)).first(),
+        (await db.scalars(select(User).where(user0.id == id))).first(),
+        (await db.scalars(select(User).where(user1.id == id))).first(),
+        (await db.scalars(select(User).where(user2.id == id))).first(),
     ]
     for user in users:
         await db.delete(user)

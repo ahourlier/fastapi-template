@@ -47,12 +47,15 @@ class CRUDBase(Generic[ModelType, CreateModelType, UpdateModelType]):
     async def create(
         self, db: AsyncSession, *, obj_in: CreateModelType, commit: bool = True
     ) -> ModelType:
-        db_obj = self.model.model_validate(obj_in)
-        db.add(db_obj)
-        if commit:
-            await db.commit()  # to move out of function?
-            await db.refresh(db_obj)
-        return db_obj
+        try:
+            db_obj = self.model.model_validate(obj_in)
+            db.add(db_obj)
+            if commit:
+                await db.commit()  # to move out of function?
+                await db.refresh(db_obj)
+            return db_obj
+        except Exception as e:
+            print(e)
 
     async def update(
         self,

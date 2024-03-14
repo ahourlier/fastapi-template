@@ -6,7 +6,7 @@ from sqlalchemy import TIMESTAMP, text
 
 from fastapi import HTTPException, status
 from pydantic import model_validator
-from sqlmodel import Column, DateTime, Field, SQLModel
+from sqlmodel import Field, SQLModel
 
 from app.models.base import to_camel
 

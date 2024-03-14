@@ -1,14 +1,27 @@
 from contextlib import ExitStack
 
 import pytest
-from alembic.config import Config
-from alembic.migration import MigrationContext
-from alembic.operations import Operations
-from alembic.script import ScriptDirectory
-from app.sqlmodel.db import Base, get_db_session, session_manager
+import httpx
+
 from app.main import app as actual_app
-from asyncpg import Connection
-from fastapi.testclient import TestClient
+from app.sqlmodel import SQLModel
+from app.sqlmodel.db import DatabaseAsyncSessionManager, get_db_session
+
+
+def get_sqlalchemy_database_uri(config):
+    """
+    Function to get SQLALCHEMY_DATABASE_URI from pytest configuration.
+    """
+    env_options = config.getini("env")
+    for option in env_options:
+        if option.startswith("SQLALCHEMY_DATABASE_URI="):
+            return option.split("=", 1)[1]
+    raise ValueError("SQLALCHEMY_DATABASE_URI not found in pytest configuration")
+
+
+@pytest.fixture(scope="session")
+def session_manager(request):
+    return DatabaseAsyncSessionManager(get_sqlalchemy_database_uri(request.config))
 
 
 @pytest.fixture(autouse=True)
@@ -17,44 +30,23 @@ def app():
         yield actual_app
 
 
-@pytest.fixture
-def client(app):
-    with TestClient(app) as c:
+@pytest.fixture(scope="function")
+async def client():
+    async with httpx.AsyncClient(app=actual_app, base_url="http://localhost:8000") as c:
         yield c
 
 
-def run_migrations(connection: Connection):
-    config = Config("alembic.ini")
-    script = ScriptDirectory.from_config(config)
-
-    def upgrade(rev, context):
-        return script._upgrade_revs("head", rev)
-
-    context = MigrationContext.configure(
-        connection, opts={"target_metadata": Base.metadata, "fn": upgrade}
-    )
-
-    with context.begin_transaction():
-        with Operations.context(context):
-            context.run_migrations()
-
-
 @pytest.fixture(scope="session", autouse=True)
-async def setup_database():
-    # Run alembic migrations on test DB
-    async with session_manager.connect() as connection:
-        await connection.run_sync(run_migrations)
-
+async def setup_database(session_manager):
+    async with session_manager._engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.drop_all)
+        await conn.run_sync(SQLModel.metadata.create_all)
     yield
-
-    # Teardown
-
     await session_manager.close()
 
 
-# Each test function is a clean slate
 @pytest.fixture(scope="function", autouse=True)
-async def transactional_session():
+async def transactional_session(session_manager):
     async with session_manager.session() as session:
         try:
             await session.begin()
@@ -71,6 +63,6 @@ async def db(transactional_session):
 @pytest.fixture(scope="function", autouse=True)
 async def session_override(app, db):
     async def get_db_session_override():
-        yield db[0]
+        yield db
 
     app.dependency_overrides[get_db_session] = get_db_session_override
