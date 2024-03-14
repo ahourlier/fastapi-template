@@ -7,7 +7,7 @@ from app.sqlmodel.crud.user import users as crud_user
 fake = Faker()
 
 
-def get_random_user() -> UserCreate:
+def build_random_user_in() -> UserCreate:
     user_in = UserCreate(
         first_name=fake.first_name(),
         last_name=fake.last_name(),
@@ -19,7 +19,7 @@ def get_random_user() -> UserCreate:
 
 
 async def create_random_user(db: AsyncSession) -> UserRead:
-    user_in = get_random_user()
+    user_in = build_random_user_in()
     user = await crud_user.create(db=db, obj_in=user_in)
     return UserRead.model_validate(user)
 
@@ -27,7 +27,7 @@ async def create_random_user(db: AsyncSession) -> UserRead:
 # - - -
 
 
-def get_user(
+def build_user_in(
     first_name: str, last_name: str, email: str, is_admin: bool, login_times: int | None
 ) -> UserCreate:
     user_in = UserCreate(
@@ -48,7 +48,7 @@ async def create_user(
     is_admin: bool,
     login_times: int | None,
 ) -> UserRead:
-    user_in = get_user(first_name, last_name, email, is_admin, login_times)
+    user_in = build_user_in(first_name, last_name, email, is_admin, login_times)
     user = await crud_user.create(db=db, obj_in=user_in)
     if not user:
         raise Exception("Failed to create test user")

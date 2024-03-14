@@ -51,6 +51,6 @@ args = get_args()
 num_requests = args.n if args.n else DEFAULT_NUM_REQUESTS
 concur_requests = args.c if args.c else DEFAULT_CONCUR_REQUESTS
 
-urls = ["http://127.0.0.1:8000/api/sql_users", "http://127.0.0.1:8000/api/sql_todos"]
+urls = ["http://127.0.0.1:8000/api/sql_users", "http://127.0.0.1:8000/api/sql_todos?limit=100"]
 for url in urls:
     request_url(url, num_requests, concur_requests, args)

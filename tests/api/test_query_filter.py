@@ -1,8 +1,5 @@
-import pytest
-from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi.testclient import TestClient
-from app.sqlmodel.models.user import User
+from httpx import AsyncClient
 from tests.utils.query_filter import call_from_operator
 from tests.utils.user import create_user
 from app.core.config import settings
@@ -10,15 +7,12 @@ from app.core.config import settings
 DATASOURCES_URL = f"{settings.API_PREFIX}/sql_users"
 
 
-@pytest.mark.anyio
-async def test_query_filter_users(client: TestClient, db: AsyncSession) -> None:
+async def test_query_filter_users(client: AsyncClient, db: AsyncSession) -> None:
     user0 = await create_user(
         db, "Jean", "jean.dupont@gmail.com", "jean.dupont@gmail.com", True, 135
     )
-    user1 = await create_user(db, "Louis", "Ferrand", "louis.ferrand@gmail.com", False, 10)  # noqa
-    user2 = await create_user(
-        db, "Anna", "", "anna.delcourt@gmail.com", False, None
-    )  # noqa  # noqa
+    await create_user(db, "Louis", "Ferrand", "louis.ferrand@gmail.com", False, 10)
+    await create_user(db, "Anna", "", "anna.delcourt@gmail.com", False, None)
 
     query_params = {
         "skip": 0,
@@ -106,13 +100,3 @@ async def test_query_filter_users(client: TestClient, db: AsyncSession) -> None:
     data = await call_from_operator(client, query_params, "first_name", "is_not_empty", None)
     # Should be 3, but limit is set
     assert data.get("total") == 1
-
-    # Delete used users
-    users = [
-        (await db.scalars(select(User).where(user0.id == id))).first(),
-        (await db.scalars(select(User).where(user1.id == id))).first(),
-        (await db.scalars(select(User).where(user2.id == id))).first(),
-    ]
-    for user in users:
-        await db.delete(user)
-        await db.commit()

@@ -1,6 +1,8 @@
 import contextlib
 from typing import Any, AsyncIterator
 
+from sqlalchemy import NullPool, AsyncAdaptedQueuePool
+
 from app.core.config import settings
 
 from sqlalchemy.ext.asyncio import (
@@ -18,7 +20,8 @@ Base = declarative_base()
 
 class DatabaseAsyncSessionManager:
     def __init__(self, host: str, engine_kwargs: dict[str, Any] = {}):
-        self._engine = create_async_engine(host, **engine_kwargs)
+        poolclass = NullPool if settings.ENV == "test" else AsyncAdaptedQueuePool
+        self._engine = create_async_engine(host, poolclass=poolclass, **engine_kwargs)
         self._sessionmaker = async_sessionmaker(autocommit=False, bind=self._engine)
 
     async def close(self):

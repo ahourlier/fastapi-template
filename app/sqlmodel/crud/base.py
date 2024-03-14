@@ -55,7 +55,7 @@ class CRUDBase(Generic[ModelType, CreateModelType, UpdateModelType]):
                 await db.refresh(db_obj)
             return db_obj
         except Exception as e:
-            print(e)
+            print("ERROR :", e)
 
     async def update(
         self,

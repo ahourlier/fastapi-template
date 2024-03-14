@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import ExitStack
 
 import pytest
@@ -6,6 +7,12 @@ import httpx
 from app.main import app as actual_app
 from app.sqlmodel import SQLModel
 from app.sqlmodel.db import DatabaseAsyncSessionManager, get_db_session
+
+
+@pytest.fixture(autouse=True)
+def app():
+    with ExitStack():
+        yield actual_app
 
 
 def get_sqlalchemy_database_uri(config):
@@ -24,10 +31,12 @@ def session_manager(request):
     return DatabaseAsyncSessionManager(get_sqlalchemy_database_uri(request.config))
 
 
-@pytest.fixture(autouse=True)
-def app():
-    with ExitStack():
-        yield actual_app
+@pytest.fixture(scope="function", autouse=True)
+async def setup_database(session_manager: DatabaseAsyncSessionManager):
+    async with session_manager._engine.begin() as conn:
+        asyncio.get_running_loop()
+        await conn.run_sync(SQLModel.metadata.drop_all)
+        await conn.run_sync(SQLModel.metadata.create_all)
 
 
 @pytest.fixture(scope="function")
@@ -36,17 +45,8 @@ async def client():
         yield c
 
 
-@pytest.fixture(scope="session", autouse=True)
-async def setup_database(session_manager):
-    async with session_manager._engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.drop_all)
-        await conn.run_sync(SQLModel.metadata.create_all)
-    yield
-    await session_manager.close()
-
-
 @pytest.fixture(scope="function", autouse=True)
-async def transactional_session(session_manager):
+async def transactional_session(session_manager: DatabaseAsyncSessionManager):
     async with session_manager.session() as session:
         try:
             await session.begin()
